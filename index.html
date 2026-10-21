@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创维电视专属网页播放器</title>
+    <!-- 引入西瓜播放器样式 -->
+    <link rel="stylesheet" href="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/xgplayer/2.31.2/index.min.css">
+    <!-- 引入西瓜播放器核心 JS -->
+    <script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/xgplayer/2.31.2/index.js" charset="utf-8"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #121212;
+            color: #ffffff;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        #player-container {
+            width: 85vw;
+            height: 70vh;
+            background: #000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+        .control-bar {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            width: 50vw;
+            padding: 12px;
+            font-size: 16px;
+            background: #222;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: #e50914;
+            color: #white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:focus, input:focus {
+            outline: 3px solid #ffcc00; /* 适配电视遥控器焦点高亮 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 播放器挂载点 -->
+        <div id="player-container"></div>
+        
+        <!-- 电视遥控器输入切换流媒体地址 -->
+        <div class="control-bar">
+            <input type="text" id="streamUrl" placeholder="请输入 M3U8 / FLV / MP4 视频流链接..." value="">
+            <button onclick="changeSource()">播放</button>
+        </div>
+    </div>
+
+    <script>
+        // 初始化西瓜播放器
+        let player = new Xgplayer({
+            id: 'player-container',
+            url: '', // 默认初始地址为空，可在下方输入或修改
+            fluid: true,
+            autoplay: true,
+            videoInit: true,
+            playsinline: true,
+            cors: true
+        });
+
+        // 切换视频源的函数
+        function changeSource() {
+            let url = document.getElementById('streamUrl').value.trim();
+            if(!url) {
+                alert('请输入有效的流媒体链接！');
+                return;
+            }
+            player.switchSrc(url);
+        }
+    </script>
+</body>
+</html>
