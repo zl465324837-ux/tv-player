@@ -1,38 +1,55 @@
-name: Build Skyworth TV APK
-on:
-  push:
-    branches: [ main, master ]
-  workflow_dispatch:
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: gradle
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Unzip project
-        run: |
-          ZIP_FILE=$(ls *.zip | head -n 1)
-          echo "ZIP=$ZIP_FILE"
-          rm -rf app src gradle 2>/dev/null || true
-          unzip -o "$ZIP_FILE" -d temp_unzip
-          PROJECT_ROOT=$(find temp_unzip -type d -name "app" | head -n 1 | xargs dirname)
-          echo "PROJECT_ROOT=$PROJECT_ROOT"
-          cp -r "$PROJECT_ROOT"/* ./
-          ls -la
-          ls -la app/
-      - name: Build APK
-        run: |
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Skyworth-55M6E-APK
-          path: app/build/outputs/apk/debug/*.apk
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>创维55M6E IPTV</title>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+<style>
+body{background:#000;color:#fff;margin:0;font-family:sans-serif;display:flex;height:100vh}
+#list{width:300px;background:#111;overflow-y:auto;padding:10px}
+#player{flex:1;background:#000;display:flex;align-items:center;justify-content:center}
+.channel{padding:12px;border-bottom:1px solid #222;cursor:pointer}
+.channel:hover{background:#333}
+video{width:100%;height:100%}
+</style>
+</head>
+<body>
+<div id="list"><h3>📺 创维电视直播</h3><div id="channels">加载中...</div>
+<input id="m3uUrl" placeholder="粘贴m3u链接" style="width:100%;margin-top:10px">
+<button onclick="loadCustom()" style="width:100%;margin-top:5px;padding:8px">加载自定义源</button>
+</div>
+<div id="player"><video id="video" controls autoplay></video></div>
+<script>
+let video=document.getElementById('video');
+function play(url){
+ if(Hls.isSupported() && url.includes('.m3u8')){
+   let hls=new Hls(); hls.loadSource(url); hls.attachMedia(video);
+ } else if(url.startsWith('rtsp://')){
+   // 创维电视上，rtsp会用系统播放器打开
+   if(/Android|Linux/.test(navigator.userAgent)){
+     window.location.href=url; // 调用TV原生播放器
+   }else{
+     alert('RTSP流请在电视/安卓端打开: '+url);
+   }
+   return;
+ } else {
+   video.src=url;
+ }
+ video.play();
+}
+async function loadM3U(url){
+ let text=await (await fetch(url)).text();
+ let lines=text.split('\n'); let channels=[];
+ for(let i=0;i<lines.length;i++){
+  if(lines[i].startsWith('#EXTINF')){let name=lines[i].split(',')[1]||'频道'; let link=lines[i+1]; channels.push({name,link})}
+ }
+ let html=''; channels.forEach(c=>{html+=`<div class=channel onclick="play('${c.link}')">${c.name}</div>`});
+ document.getElementById('channels').innerHTML=html;
+}
+// 默认加载同目录下的 tv.m3u
+loadM3U('./tv.m3u').catch(()=>loadM3U('https://raw.githubusercontent.com/iptv-org/iptv/master/streams/china.m3u'));
+function loadCustom(){ let url=document.getElementById('m3uUrl').value; if(url) loadM3U(url); }
+</script>
+</body>
+</html>
