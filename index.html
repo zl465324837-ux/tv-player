@@ -1,67 +1,38 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手机流媒体播放器</title>
-    <!-- 引入西瓜播放器样式与核心库 -->
-    <link rel="stylesheet" href="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/xgplayer/2.31.2/index.min.css">
-    <script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/xgplayer/2.31.2/index.js" charset="utf-8"></script>
-    <!-- 引入 HLS 解码插件以完美支持 M3U8 -->
-    <script src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/xgplayer-hls/2.5.2/index.min.js" charset="utf-8"></script>
-
-    <style>
-        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
-        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 10px; box-sizing: border-box; }
-        #player-container { width: 100%; height: 60vh; background: #111; }
-        .control-bar { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; width: 100%; }
-        input { width: 100%; padding: 12px; font-size: 16px; background: #222; color: #fff; border: 1px solid #444; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; font-size: 16px; background: #e50914; color: #fff; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-    <div class="container">
-        <div id="player-container"></div>
-        <div class="control-bar">
-            <!-- 预置了一个公开的测试 M3U8 链接 -->
-            <input type="text" id="streamUrl" placeholder="请输入 https:// 开头的 M3U8 链接..." value="https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8">
-            <button onclick="playSource()">播放视频</button>
-        </div>
-    </div>
-
-    <script>
-        let player = null;
-
-        function playSource() {
-            let url = document.getElementById('streamUrl').value.trim();
-            if (!url) {
-                alert('请输入有效的视频链接！');
-                return;
-            }
-
-            // 如果已有播放器实例，先销毁
-            if (player) {
-                player.destroy();
-                player = null;
-            }
-
-            // 初始化西瓜播放器
-            player = new Player({
-                id: 'player-container',
-                url: url,
-                fluid: true,
-                autoplay: true,
-                cors: true,
-                videoInit: true,
-                playsinline: true
-            });
-        }
-
-        // 页面打开时自动加载默认测试源
-        window.onload = function() {
-            playSource();
-        };
-    </script>
-</body>
-</html>
+name: Build Skyworth TV APK
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Unzip project
+        run: |
+          ZIP_FILE=$(ls *.zip | head -n 1)
+          echo "ZIP=$ZIP_FILE"
+          rm -rf app src gradle 2>/dev/null || true
+          unzip -o "$ZIP_FILE" -d temp_unzip
+          PROJECT_ROOT=$(find temp_unzip -type d -name "app" | head -n 1 | xargs dirname)
+          echo "PROJECT_ROOT=$PROJECT_ROOT"
+          cp -r "$PROJECT_ROOT"/* ./
+          ls -la
+          ls -la app/
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --stacktrace
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Skyworth-55M6E-APK
+          path: app/build/outputs/apk/debug/*.apk
